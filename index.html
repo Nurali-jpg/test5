@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Chat App</title>
+</head>
+<body>
+    <h1>Welcome to Simple Chat!</h1>
+    <div id="chat-window"></div>
+    <input type="text" id="message-input" placeholder="Type a message">
+    <button onclick="sendMessage()">Send</button>
+    
+	<!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore.js"></script>
+
+    <script>
+  const firebaseConfig = { /* ваш FirebaseConfig */ };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  function sendMessage() {
+    const messageInput = document.getElementById('message-input');
+    const messageText = messageInput.value;
+
+    if (messageText.trim() !== "") {
+      db.collection('messages').add({
+        text: messageText,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(() => {
+        messageInput.value = '';
+      }).catch(error => {
+        console.error("Ошибка при отправке сообщения: ", error);
+      });
+    }
+  }
+
+  function addReaction(messageId, emoji) {
+    db.collection('messages').doc(messageId).collection('reactions').add({
+      emoji: emoji,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    }).catch(error => {
+      console.error("Ошибка при добавлении реакции: ", error);
+    });
+  }
+
+  db.collection('messages').orderBy('timestamp').onSnapshot(snapshot => {
+    const chatWindow = document.getElementById('chat-window');
+    chatWindow.innerHTML = '';
+
+    snapshot.forEach(doc => {
+      const messageData = doc.data();
+      const messageId = doc.id;
+
+      const messageDiv = document.createElement('div');
+      messageDiv.textContent = messageData.text;
+
+      const reactionButton1 = document.createElement('button');
+      reactionButton1.textContent = '👍';
+      reactionButton1.onclick = () => addReaction(messageId, '👍');
+
+      const reactionButton2 = document.createElement('button');
+      reactionButton2.textContent = '😂';
+      reactionButton2.onclick = () => addReaction(messageId, '😂');
+
+      messageDiv.appendChild(reactionButton1);
+      messageDiv.appendChild(reactionButton2);
+
+      chatWindow.appendChild(messageDiv);
+    });
+  });
+</script>
+</body>
+</html>
